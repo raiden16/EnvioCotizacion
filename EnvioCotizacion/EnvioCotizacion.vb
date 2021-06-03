@@ -8,6 +8,12 @@ Public Class EnvioCotizacion
     Public SBOCompany As SAPbobsCOM.Company
     Dim pdf, xml, pdfSAP, xmlSAP As String
 
+    Public Sub New()
+        MyBase.New()
+        SBOApplication = oCatchingEvents.SBOApplication
+        SBOCompany = oCatchingEvents.SBOCompany
+    End Sub
+
     Public Function Cotizacion(ByVal DocNum As String, ByVal Tipo As String, ByVal psDirectory As String)
 
         Dim oRecSettxb As SAPbobsCOM.Recordset
@@ -27,7 +33,7 @@ Public Class EnvioCotizacion
                 DocEntry = oRecSettxb.Fields.Item("DocEntry").Value
                 CardCode = oRecSettxb.Fields.Item("CardCode").Value
                 CardName = oRecSettxb.Fields.Item("CardName").Value
-                DocDate = oRecSettxb.Fields.Item("CreateDate").Value
+                DocDate = oRecSettxb.Fields.Item("DocDate").Value
                 EmailC = oRecSettxb.Fields.Item("E_Mail").Value
 
                 ExportarPDF(DocEntry, Tipo, DocNum, psDirectory)
@@ -60,6 +66,12 @@ Public Class EnvioCotizacion
             reportDocument.DataSourceConnections(0).SetLogon(My.Settings.DbUserName, My.Settings.DbPassword)
 
             reportDocument.SetParameterValue(0, DocEntry)
+
+            If Tipo = "ORDR" Then
+
+                reportDocument.SetParameterValue(1, 17)
+
+            End If
 
             reportDocument.ExportOptions.ExportDestinationType = ExportDestinationType.DiskFile
             reportDocument.ExportOptions.ExportFormatType = ExportFormatType.PortableDocFormat
@@ -139,8 +151,8 @@ Public Class EnvioCotizacion
         'MsgBox("Validacion de Documentos exitosa")
         Dim message As New MailMessage
         Dim smtp As New SmtpClient
-        Dim oRecSettxb, oRecSettxb1, oRecSettxb2 As SAPbobsCOM.Recordset
-        Dim stQuerytxb, stQuerytxb1, stQuerytxb2 As String
+        Dim oRecSettxb, oRecSettxb2 As SAPbobsCOM.Recordset
+        Dim stQuerytxb, stQuerytxb2 As String
         Dim EmailU, Pass, EmailCC, Subject, Body, smtpService, Puerto, SegSSL As String
 
         Try
@@ -175,7 +187,7 @@ Public Class EnvioCotizacion
                 If EmailCC.Count > 0 Then
                     message.CC.Add(EmailCC)
                 End If
-                message.Subject = Subject & DocNum
+                message.Subject = Subject & " " & DocNum
 
                 'Llenamos el cuerpo del correo y prioridad
                 message.Body = Body
@@ -197,7 +209,7 @@ Public Class EnvioCotizacion
                 If Tipo = "ORDR" Then
 
                     oRecSettxb2 = SBOCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset)
-                    stQuerytxb2 = "Update OINV set ""U_PDF""='" & pdf & "' where ""DocNum""=" & DocNum
+                    stQuerytxb2 = "Update ORDR set ""U_PDF""='" & pdf & "' where ""DocNum""=" & DocNum
                     oRecSettxb2.DoQuery(stQuerytxb2)
 
                 End If
